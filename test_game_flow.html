@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WillingTree Game Flow Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .user {
+            flex: 1;
+            border: 2px solid #4CAF50;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .log {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        pre {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>WillingTree Game Flow Tester</h1>
+
+    <div class="status">
+        <strong>Test Status:</strong> <span id="status">Ready to start</span>
+    </div>
+
+    <button onclick="runFullTest()">Run Complete Test Flow</button>
+    <button onclick="clearData()">Clear All Data</button>
+    <button onclick="checkStatus()">Check Current Status</button>
+
+    <div class="container">
+        <div class="user">
+            <h2>User 1 - Alice</h2>
+            <iframe id="user1" src="http://localhost:5001" width="100%" height="600"></iframe>
+            <div class="log" id="log1"></div>
+        </div>
+
+        <div class="user">
+            <h2>User 2 - Bob</h2>
+            <iframe id="user2" src="http://localhost:5002" width="100%" height="600"></iframe>
+            <div class="log" id="log2"></div>
+        </div>
+    </div>
+
+    <script>
+        const TREE_ID = Date.now().toString();
+        const USER1_ID = 'alice_' + Math.random().toString(36).substr(2, 9);
+        const USER2_ID = 'bob_' + Math.random().toString(36).substr(2, 9);
+
+        function log(message, logId = 'log1') {
+            const logEl = document.getElementById(logId);
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `[${time}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function setStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function clearData() {
+            // Clear all localStorage data related to the game
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.includes('tree_') || key.includes('pairing_') || key.includes('partner_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+            log('Cleared all game data', 'log1');
+            log('Cleared all game data', 'log2');
+            setStatus('Data cleared - ready for new test');
+        }
+
+        function createBigBranch(userId) {
+            const items = [];
+            const suggestions = [
+                'Quality time together',
+                'Help with household chores',
+                'A surprise date night',
+                'A heartfelt compliment',
+                'Physical affection',
+                'Help with a project',
+                'A home-cooked meal',
+                'Active listening',
+                'Space when needed',
+                'Support during stress',
+                'A thoughtful gift',
+                'Words of encouragement'
+            ];
+
+            // Create 12 items with 25 points distributed
+            let pointsRemaining = 25;
+            for (let i = 0; i < 12; i++) {
+                const isLast = i === 11;
+                const points = isLast ? pointsRemaining : Math.min(pointsRemaining, Math.ceil(Math.random() * 3));
+                items.push({
+                    id: Date.now().toString() + '_' + i,
+                    description: suggestions[i],
+                    points: points
+                });
+                pointsRemaining -= points;
+            }
+
+            return items;
+        }
+
+        async function simulateUser1() {
+            log('User 1: Starting test...', 'log1');
+
+            // Step 1: Create and store Big Branch
+            const bigBranch = createBigBranch(USER1_ID);
+            const bigBranchData = {
+                userId: USER1_ID,
+                items: bigBranch,
+                completedAt: new Date().toISOString()
+            };
+
+            localStorage[`tree_${TREE_ID}_bigbranch_${USER1_ID}`] = JSON.stringify(bigBranchData);
+            localStorage[`tree_${TREE_ID}_user_${USER1_ID}_status`] = 'bigbranch_complete';
+
+            log(`User 1: Created Big Branch with ${bigBranch.length} items`, 'log1');
+            log(`User 1: Total points: ${bigBranch.reduce((sum, item) => sum + item.points, 0)}`, 'log1');
+
+            return true;
+        }
+
+        async function simulateUser2() {
+            log('User 2: Starting test...', 'log2');
+
+            // Step 1: Create and store Big Branch
+            const bigBranch = createBigBranch(USER2_ID);
+            const bigBranchData = {
+                userId: USER2_ID,
+                items: bigBranch,
+                completedAt: new Date().toISOString()
+            };
+
+            localStorage[`tree_${TREE_ID}_bigbranch_${USER2_ID}`] = JSON.stringify(bigBranchData);
+            localStorage[`tree_${TREE_ID}_user_${USER2_ID}_status`] = 'bigbranch_complete';
+
+            log(`User 2: Created Big Branch with ${bigBranch.length} items`, 'log2');
+            log(`User 2: Total points: ${bigBranch.reduce((sum, item) => sum + item.points, 0)}`, 'log2');
+
+            return true;
+        }
+
+        function checkBothComplete() {
+            const user1Status = localStorage[`tree_${TREE_ID}_user_${USER1_ID}_status`];
+            const user2Status = localStorage[`tree_${TREE_ID}_user_${USER2_ID}_status`];
+
+            const bothComplete = user1Status === 'bigbranch_complete' && user2Status === 'bigbranch_complete';
+
+            log(`Status Check:`, 'log1');
+            log(`  User 1: ${user1Status || 'not started'}`, 'log1');
+            log(`  User 2: ${user2Status || 'not started'}`, 'log1');
+            log(`  Both complete: ${bothComplete}`, 'log1');
+
+            return bothComplete;
+        }
+
+        function checkStatus() {
+            // Check Big Branch status
+            const user1BigBranch = localStorage[`tree_${TREE_ID}_bigbranch_${USER1_ID}`];
+            const user2BigBranch = localStorage[`tree_${TREE_ID}_bigbranch_${USER2_ID}`];
+            const user1Status = localStorage[`tree_${TREE_ID}_user_${USER1_ID}_status`];
+            const user2Status = localStorage[`tree_${TREE_ID}_user_${USER2_ID}_status`];
+            const timerStart = localStorage[`tree_${TREE_ID}_timer_start`];
+
+            console.log('=== Current Status ===');
+            console.log('Tree ID:', TREE_ID);
+            console.log('User 1 ID:', USER1_ID);
+            console.log('User 2 ID:', USER2_ID);
+            console.log('User 1 Big Branch:', user1BigBranch ? 'Complete' : 'Not started');
+            console.log('User 2 Big Branch:', user2BigBranch ? 'Complete' : 'Not started');
+            console.log('User 1 Status:', user1Status || 'None');
+            console.log('User 2 Status:', user2Status || 'None');
+            console.log('Timer Started:', timerStart ? new Date(timerStart) : 'Not started');
+
+            if (user1BigBranch) {
+                const data = JSON.parse(user1BigBranch);
+                console.log('User 1 Items:', data.items.length);
+                console.log('User 1 Points:', data.items.reduce((sum, item) => sum + item.points, 0));
+            }
+
+            if (user2BigBranch) {
+                const data = JSON.parse(user2BigBranch);
+                console.log('User 2 Items:', data.items.length);
+                console.log('User 2 Points:', data.items.reduce((sum, item) => sum + item.points, 0));
+            }
+
+            // Also log to UI
+            log(`Status: User1=${user1Status || 'none'}, User2=${user2Status || 'none'}`, 'log1');
+            log(`Timer: ${timerStart ? 'Started' : 'Not started'}`, 'log1');
+        }
+
+        async function runFullTest() {
+            setStatus('Starting test flow...');
+            clearData();
+
+            // Step 1: Both users complete Big Branch
+            setStatus('Step 1: Creating Big Branches...');
+            await simulateUser1();
+            await simulateUser2();
+
+            // Step 2: Check if both are complete
+            setStatus('Step 2: Checking completion status...');
+            const bothComplete = checkBothComplete();
+
+            if (bothComplete) {
+                // Step 3: Start timer
+                setStatus('Step 3: Starting timer...');
+                localStorage[`tree_${TREE_ID}_timer_start`] = new Date().toISOString();
+                log('Timer started!', 'log1');
+
+                // Step 4: Check if we can access partner's Big Branch
+                setStatus('Step 4: Verifying partner data access...');
+                const user1CanSeeUser2 = localStorage[`tree_${TREE_ID}_bigbranch_${USER2_ID}`];
+                const user2CanSeeUser1 = localStorage[`tree_${TREE_ID}_bigbranch_${USER1_ID}`];
+
+                if (user1CanSeeUser2) {
+                    const data = JSON.parse(user1CanSeeUser2);
+                    log(`User 1 can see User 2's ${data.items.length} items`, 'log1');
+                }
+
+                if (user2CanSeeUser1) {
+                    const data = JSON.parse(user2CanSeeUser1);
+                    log(`User 2 can see User 1's ${data.items.length} items`, 'log2');
+                }
+
+                setStatus('✅ Test Complete! Both users should now transition to Little Branch screen.');
+
+                // Now let's verify the app detects this
+                setTimeout(() => {
+                    log('App should now automatically navigate to Little Branch screen', 'log1');
+                    log('App should now automatically navigate to Little Branch screen', 'log2');
+                    checkStatus();
+                }, 3000);
+
+            } else {
+                setStatus('❌ Error: Both users did not complete Big Branch');
+            }
+        }
+    </script>
+</body>
+</html>

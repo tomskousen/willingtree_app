@@ -1,0 +1,32 @@
+name: willingtree
+description: Evolve core relationships with trust/safety through want/willing/won't
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core functionality
+  provider: ^6.0.5
+  shared_preferences: ^2.2.0
+
+  # UI/UX
+  cupertino_icons: ^1.0.5
+  percent_indicator: ^4.2.3
+
+  # Utilities
+  intl: ^0.18.1
+  uuid: ^4.0.0
+  collection: ^1.17.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
