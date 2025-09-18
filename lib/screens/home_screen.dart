@@ -24,8 +24,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startNewGame(BuildContext context, GameState gameState) {
+    // Create a deterministic tree ID based on both user IDs
+    // Sort the IDs to ensure both users get the same tree ID
+    final userId1 = gameState.currentUser!.id;
+    final userId2 = gameState.partner!.id;
+    final sortedIds = [userId1, userId2]..sort();
+
+    // Create tree ID from sorted user IDs and current date
+    final dateStr = DateTime.now().toIso8601String().substring(0, 10); // YYYY-MM-DD
+    final treeId = 'tree_${sortedIds[0]}_${sortedIds[1]}_$dateStr';
+
+    print('Creating/joining tree with ID: $treeId');
+    print('Current user: $userId1');
+    print('Partner: $userId2');
+
     final newTree = WillingTree(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: treeId,
       partnerId: gameState.partner!.id,
       partnerName: gameState.partner!.displayName ?? gameState.partner!.phoneNumber,
     );

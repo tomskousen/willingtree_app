@@ -23,6 +23,8 @@ class _BigBranchScreenState extends State<BigBranchScreen> {
   final TextEditingController pointsController = TextEditingController(text: '1');
   final FocusNode itemFocus = FocusNode();
   Timer? _checkTimer;
+  bool isSubmitted = false;
+  bool isWaitingForPartner = false;
 
   @override
   void initState() {
@@ -186,6 +188,7 @@ class _BigBranchScreenState extends State<BigBranchScreen> {
     print('Submitting Big Branch...');
     print('Tree ID: ${widget.tree.id}');
     print('User ID: ${gameState.currentUser!.id}');
+    print('Partner ID: ${gameState.partner!.id}');
     print('Items: ${bigBranch.length}');
 
     // Save to local tree
@@ -200,12 +203,17 @@ class _BigBranchScreenState extends State<BigBranchScreen> {
 
     print('Big Branch stored successfully!');
 
+    setState(() {
+      isSubmitted = true;
+      isWaitingForPartner = true;
+    });
+
     // Show confirmation message
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Big Branch locked in! Checking if partner is ready...'),
+        content: Text('Big Branch locked in! Waiting for partner...'),
         backgroundColor: AppTheme.primaryGreen,
-        duration: Duration(seconds: 2),
+        duration: Duration(seconds: 3),
       ),
     );
 
@@ -240,7 +248,81 @@ class _BigBranchScreenState extends State<BigBranchScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: isSubmitted
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 50),
+                  Container(
+                    padding: const EdgeInsets.all(40),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.hourglass_bottom,
+                      size: 80,
+                      color: AppTheme.primaryGreen,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  const Text(
+                    'Your Big Branch is Locked In!',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryGreen,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Waiting for ${gameState.partner?.displayName ?? "your partner"} to complete...',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: AppTheme.textLight,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation(AppTheme.primaryGreen),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Checking every 2 seconds...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textLight,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  // Debug info
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        Text('Tree ID: ${widget.tree.id}',
+                          style: const TextStyle(fontSize: 10, fontFamily: 'monospace'),
+                        ),
+                        Text('Your ID: ${gameState.currentUser?.id ?? "unknown"}',
+                          style: const TextStyle(fontSize: 10, fontFamily: 'monospace'),
+                        ),
+                        Text('Partner ID: ${gameState.partner?.id ?? "unknown"}',
+                          style: const TextStyle(fontSize: 10, fontFamily: 'monospace'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Column(
         children: [
           // Progress indicator
           LinearProgressIndicator(
