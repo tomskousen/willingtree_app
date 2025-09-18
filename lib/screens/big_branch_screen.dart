@@ -114,9 +114,6 @@ class _BigBranchScreenState extends State<BigBranchScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           itemFocus.requestFocus();
         });
-      } else if (pointsRemaining == 0) {
-        // Auto-submit if complete
-        _submitBigBranch();
       }
     });
   }
@@ -174,10 +171,10 @@ class _BigBranchScreenState extends State<BigBranchScreen> {
   }
 
   void _submitBigBranch() {
-    if (bigBranch.length != 12 || pointsRemaining != 0) {
+    if (bigBranch.length != 12) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You need exactly 12 items and must use all 25 points'),
+          content: Text('You need exactly 12 items to complete your Big Branch'),
         ),
       );
       return;
@@ -235,7 +232,7 @@ class _BigBranchScreenState extends State<BigBranchScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: pointsRemaining == 0 ? Colors.green : Colors.orange,
+              color: AppTheme.primaryGreen,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -463,17 +460,17 @@ class _BigBranchScreenState extends State<BigBranchScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: pointsRemaining == 0 ? _submitBigBranch : null,
+                      onPressed: bigBranch.length == 12 ? _submitBigBranch : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: pointsRemaining == 0
+                        backgroundColor: bigBranch.length == 12
                           ? AppTheme.primaryGreen
                           : Colors.grey,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: Text(
-                        pointsRemaining == 0
-                          ? 'Lock In Big Branch'
-                          : 'Distribute all 25 points first',
+                        bigBranch.length == 12
+                          ? 'Lock In Big Branch (${25 - pointsRemaining} points used)'
+                          : 'Add ${12 - bigBranch.length} more item${bigBranch.length == 11 ? '' : 's'}',
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
