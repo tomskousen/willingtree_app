@@ -69,12 +69,12 @@ class _GuessingScreenState extends State<GuessingScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'What did ${widget.tree.partnerName} work on?',
+                  'What would you guess ${widget.tree.partnerName} had for their intentions this week?',
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  '3 guesses from YOUR Big Branch (5 pts each)',
+                  'Select 3 items from YOUR Big Branch that you think they chose to focus on (5 pts each correct guess)',
                   style: TextStyle(color: AppTheme.textLight, fontSize: 14),
                 ),
                 const SizedBox(height: 16),
