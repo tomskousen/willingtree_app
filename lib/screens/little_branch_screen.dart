@@ -5,7 +5,7 @@ import '../models/game_state.dart';
 import '../theme/app_theme.dart';
 import '../services/game_sync_service.dart';
 import 'game_timer_widget.dart';
-import 'guessing_screen.dart';
+import 'timer_waiting_screen.dart';
 
 class LittleBranchScreen extends StatefulWidget {
   final WillingTree tree;
@@ -117,11 +117,11 @@ class _LittleBranchScreenState extends State<LittleBranchScreen> {
       littleBranch,
     );
 
-    // Navigate to guessing screen
+    // Navigate to timer/waiting screen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => GuessingScreen(tree: widget.tree),
+        builder: (_) => TimerWaitingScreen(tree: widget.tree),
       ),
     );
   }
