@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/game_state.dart';
 import '../theme/app_theme.dart';
+import '../services/game_sync_service.dart';
 import 'scoring_screen.dart';
 
 class GuessingScreen extends StatefulWidget {
@@ -29,21 +31,43 @@ class _GuessingScreenState extends State<GuessingScreen> {
   void submitGuesses() {
     if (selectedGuesses.isEmpty) return;
 
-    // Calculate points
-    int pointsEarned = 0;
+    final gameState = context.read<GameState>();
+
+    // Calculate points from correct guesses
+    int guessPoints = 0;
     for (var guess in selectedGuesses) {
+      // Check if this item from MY Big Branch was selected by partner in their Little Branches
       if (widget.tree.partnerLittleBranches.any((item) => item.id == guess.id)) {
         // Correct guess! 5 points each
-        pointsEarned += 5;
+        guessPoints += 5;
+        print('Correct guess: ${guess.description}');
       }
     }
 
-    // Points from partner's efforts on your Big Branch
-    int effortPoints = widget.tree.partnerLittleBranches
-        .where((item) => widget.tree.myBigBranch.contains(item))
-        .fold(0, (sum, item) => sum + item.points);
+    // Calculate points from partner's efforts on your Big Branch
+    // Partner gets points based on the value of items they worked on
+    int effortPoints = 0;
+    for (var partnerChoice in widget.tree.partnerLittleBranches) {
+      // Find matching item in my Big Branch to get its point value
+      final matchingItem = widget.tree.myBigBranch.firstWhere(
+        (item) => item.id == partnerChoice.id,
+        orElse: () => partnerChoice,
+      );
+      effortPoints += matchingItem.points;
+      print('Partner worked on: ${matchingItem.description} (${matchingItem.points} pts)');
+    }
 
-    widget.tree.myPoints += pointsEarned + effortPoints;
+    // Total score is guess points + effort points received
+    widget.tree.myPoints = guessPoints + effortPoints;
+
+    print('Score breakdown - Guesses: $guessPoints, Efforts received: $effortPoints, Total: ${widget.tree.myPoints}');
+
+    // Store score to shared storage
+    GameSyncService.storeScore(
+      widget.tree.id,
+      gameState.currentUser!.id,
+      widget.tree.myPoints,
+    );
 
     // Navigate to scoring
     Navigator.pushReplacement(
@@ -76,6 +100,11 @@ class _GuessingScreenState extends State<GuessingScreen> {
                 const Text(
                   'Select 3 items from YOUR Big Branch that you think they chose to focus on (5 pts each correct guess)',
                   style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'You also receive points for each item they worked on from your list!',
+                  style: TextStyle(color: AppTheme.primaryGreen, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 16),
                 Container(

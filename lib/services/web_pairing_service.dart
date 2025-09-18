@@ -29,6 +29,7 @@ class WebPairingService {
           return {
             'phone': jsObject['phone'] as String,
             'timestamp': jsObject['timestamp'] as String,
+            'displayName': jsObject['displayName'] as String?,
           };
         }
       }
@@ -68,6 +69,56 @@ class WebPairingService {
       }
     } catch (e) {
       print('Error listing codes: $e');
+    }
+  }
+
+  // Store bidirectional pairing with additional metadata
+  static void storePairing(String userPhone, String partnerPhone, {String? partnerName}) {
+    try {
+      // Store in localStorage for cross-browser sync
+      final data = {
+        'partnerPhone': partnerPhone,
+        'partnerName': partnerName ?? partnerPhone,
+        'timestamp': DateTime.now().toIso8601String(),
+        'paired': true,
+      };
+      html.window.localStorage['paired_$userPhone'] = jsonEncode(data);
+      print('Stored pairing: $userPhone -> $partnerPhone');
+    } catch (e) {
+      print('Error storing pairing: $e');
+    }
+  }
+
+  // Check if user is already paired
+  static Map<String, dynamic>? getPairing(String userPhone) {
+    try {
+      final data = html.window.localStorage['paired_$userPhone'];
+      if (data != null) {
+        // Handle both old format (just phone number) and new format (JSON)
+        try {
+          return jsonDecode(data);
+        } catch (e) {
+          // Old format - just phone number stored as string
+          return {
+            'partnerPhone': data,
+            'partnerName': data,
+            'timestamp': DateTime.now().toIso8601String(),
+            'paired': true,
+          };
+        }
+      }
+    } catch (e) {
+      print('Error getting pairing: $e');
+    }
+    return null;
+  }
+
+  // Clear pairing
+  static void clearPairing(String userPhone) {
+    try {
+      html.window.localStorage.remove('paired_$userPhone');
+    } catch (e) {
+      print('Error clearing pairing: $e');
     }
   }
 }

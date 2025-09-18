@@ -30,15 +30,52 @@ class _BigBranchScreenState extends State<BigBranchScreen> {
   void initState() {
     super.initState();
 
+    // Load existing Big Branch if available
+    _loadExistingBigBranch();
+
     // Check periodically if partner has completed
     _checkTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _checkPartnerStatus();
     });
 
-    // Focus on the first input
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      itemFocus.requestFocus();
-    });
+    // Focus on the first input if starting fresh
+    if (bigBranch.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        itemFocus.requestFocus();
+      });
+    }
+  }
+
+  void _loadExistingBigBranch() {
+    final gameState = context.read<GameState>();
+
+    // First check if the tree already has a Big Branch
+    if (widget.tree.myBigBranch.isNotEmpty) {
+      setState(() {
+        bigBranch.addAll(widget.tree.myBigBranch);
+        pointsRemaining = 25 - bigBranch.fold(0, (sum, item) => sum + item.points);
+        currentEditIndex = bigBranch.length;
+      });
+      return;
+    }
+
+    // Otherwise try to load from shared storage
+    final storedBranch = GameSyncService.getPartnerBigBranch(
+      widget.tree.id,
+      gameState.currentUser!.id,
+    );
+
+    if (storedBranch != null && storedBranch.isNotEmpty) {
+      setState(() {
+        bigBranch.addAll(storedBranch);
+        pointsRemaining = 25 - bigBranch.fold(0, (sum, item) => sum + item.points);
+        currentEditIndex = bigBranch.length;
+        isSubmitted = bigBranch.length == 12;
+        if (isSubmitted) {
+          isWaitingForPartner = true;
+        }
+      });
+    }
   }
 
   @override

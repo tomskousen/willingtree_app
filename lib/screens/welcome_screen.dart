@@ -2,12 +2,80 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/game_state.dart';
 import '../theme/app_theme.dart';
+import '../services/web_pairing_service.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'name_setup_screen.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  String? _inviteCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkForInviteCode();
+  }
+
+  void _checkForInviteCode() {
+    final code = WebPairingService.getInviteCodeFromUrl();
+    if (code != null) {
+      setState(() {
+        _inviteCode = code;
+      });
+      // Show special UI for invite links
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showInviteDialog();
+      });
+    }
+  }
+
+  void _showInviteDialog() {
+    if (_inviteCode == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('You\'ve been invited!'),
+        content: const Text(
+          'Someone has invited you to connect on WillingTree. Sign up or log in to accept the invitation.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SignUpScreen(inviteCode: _inviteCode),
+                ),
+              );
+            },
+            child: const Text('Sign Up'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LoginScreen(inviteCode: _inviteCode),
+                ),
+              );
+            },
+            child: const Text('Log In'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +137,7 @@ class WelcomeScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const SignUpScreen()),
+                      MaterialPageRoute(builder: (_) => SignUpScreen(inviteCode: _inviteCode)),
                     );
                   },
                   child: const Text('Sign Up Free'),
@@ -82,7 +150,7 @@ class WelcomeScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      MaterialPageRoute(builder: (_) => LoginScreen(inviteCode: _inviteCode)),
                     );
                   },
                   style: OutlinedButton.styleFrom(
@@ -109,7 +177,8 @@ class WelcomeScreen extends StatelessWidget {
 }
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+  final String? inviteCode;
+  const SignUpScreen({super.key, this.inviteCode});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -135,9 +204,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final gameState = context.read<GameState>();
       await gameState.loginWithPhone(phone);
       if (mounted) {
-        // New signup always goes to name setup
+        // Pass invite code to name setup if present
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const NameSetupScreen()),
+          MaterialPageRoute(builder: (_) => NameSetupScreen(inviteCode: widget.inviteCode)),
           (route) => false,
         );
       }

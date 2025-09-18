@@ -33,9 +33,13 @@ window.pairingBridge = {
       const diffMinutes = (now - timestamp) / (1000 * 60);
 
       if (diffMinutes <= 10) {
-        // Remove the code after successful retrieval
-        localStorage.removeItem(key);
-        return parsed;
+        // Don't remove the code immediately - let it expire naturally
+        // This allows both partners to use the same code
+        return {
+          phone: parsed.phone,
+          displayName: parsed.name,
+          timestamp: parsed.timestamp
+        };
       } else {
         // Code is too old, remove it
         localStorage.removeItem(key);

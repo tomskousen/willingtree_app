@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/game_state.dart';
 import '../theme/app_theme.dart';
+import 'main_app_screen.dart';
 
 class PairingScreen extends StatefulWidget {
   const PairingScreen({super.key});
@@ -16,20 +18,53 @@ class _PairingScreenState extends State<PairingScreen> {
   String? _myCode;
   String? _inviteLink;
   bool _isLoading = false;
+  Timer? _pairingCheckTimer;
 
   @override
   void initState() {
     super.initState();
-    _generateCode();
+    // Delay generation to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _generateCode();
+      _startPairingCheck();
+    });
   }
 
   void _generateCode() {
     final gameState = context.read<GameState>();
     final code = gameState.generatePairingCode();
     final link = gameState.getInviteLink();
-    setState(() {
-      _myCode = code;
-      _inviteLink = link;
+    if (mounted) {
+      setState(() {
+        _myCode = code;
+        _inviteLink = link;
+      });
+    }
+  }
+
+  void _startPairingCheck() {
+    // Check every 2 seconds if someone has paired with us
+    _pairingCheckTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      final gameState = context.read<GameState>();
+      final paired = await gameState.checkForPairing();
+
+      if (paired && mounted) {
+        timer.cancel();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Partner connected! Starting game...'),
+            backgroundColor: AppTheme.primaryGreen,
+          ),
+        );
+
+        // Start new game after detecting pairing
+        _startNewGameAfterPairing(gameState);
+      }
     });
   }
 
@@ -46,21 +81,61 @@ class _PairingScreenState extends State<PairingScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final success = await context.read<GameState>().pairWithCode(code);
+      final gameState = context.read<GameState>();
+      final success = await gameState.pairWithCode(code);
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Successfully paired!')),
+          const SnackBar(
+            content: Text('Successfully paired! Starting game...'),
+            backgroundColor: AppTheme.primaryGreen,
+          ),
         );
-        Navigator.pop(context);
+
+        // Start a new game immediately after pairing
+        _startNewGameAfterPairing(gameState);
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid pairing code')),
+          const SnackBar(
+            content: Text('Invalid pairing code'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _startNewGameAfterPairing(GameState gameState) {
+    if (gameState.partner == null) return;
+
+    // Create a deterministic tree ID
+    final userId1 = gameState.currentUser!.id;
+    final userId2 = gameState.partner!.id;
+    final sortedIds = [userId1, userId2]..sort();
+    final dateStr = DateTime.now().toIso8601String().substring(0, 10);
+    final treeId = 'tree_${sortedIds[0]}_${sortedIds[1]}_$dateStr';
+
+    final newTree = WillingTree(
+      id: treeId,
+      partnerId: gameState.partner!.id,
+      partnerName: gameState.partner!.displayName ?? gameState.partner!.phoneNumber,
+    );
+    gameState.activeTree = newTree;
+    gameState.trees.add(newTree);
+
+    // Navigate directly to Big Branch screen
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MainAppScreen(
+          initialIndex: 1, // Tree tab
+          activeTree: newTree,
+        ),
+      ),
+      (route) => false,
+    );
   }
 
   @override
@@ -246,6 +321,7 @@ class _PairingScreenState extends State<PairingScreen> {
 
   @override
   void dispose() {
+    _pairingCheckTimer?.cancel();
     _codeController.dispose();
     super.dispose();
   }

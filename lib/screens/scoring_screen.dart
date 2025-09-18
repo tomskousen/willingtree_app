@@ -2,19 +2,61 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/game_state.dart';
 import '../theme/app_theme.dart';
-import 'big_branch_screen.dart';
+import '../services/game_sync_service.dart';
+import 'main_app_screen.dart';
 
-class ScoringScreen extends StatelessWidget {
+class ScoringScreen extends StatefulWidget {
   final WillingTree tree;
 
   const ScoringScreen({super.key, required this.tree});
+
+  @override
+  State<ScoringScreen> createState() => _ScoringScreenState();
+}
+
+class _ScoringScreenState extends State<ScoringScreen> {
+  int partnerScore = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPartnerScore();
+  }
+
+  void _loadPartnerScore() {
+    final gameState = context.read<GameState>();
+    if (gameState.partner != null) {
+      partnerScore = GameSyncService.getScore(
+        widget.tree.id,
+        gameState.partner!.id,
+      );
+
+      // If partner hasn't submitted their score yet, calculate it from their perspective
+      if (partnerScore == 0 && widget.tree.myLittleBranches.isNotEmpty) {
+        // Partner gets points for items we worked on from their Big Branch
+        int partnerEffortPoints = 0;
+        for (var myChoice in widget.tree.myLittleBranches) {
+          // Find matching item in partner's Big Branch to get its point value
+          final matchingItem = widget.tree.partnerBigBranch.firstWhere(
+            (item) => item.id == myChoice.id,
+            orElse: () => myChoice,
+          );
+          partnerEffortPoints += matchingItem.points;
+        }
+        widget.tree.partnerPoints = partnerEffortPoints;
+        partnerScore = partnerEffortPoints;
+      }
+
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final gameState = context.watch<GameState>();
 
     // Calculate week number
-    final weekNumber = (tree.totalFruit ~/ 3) + 1;
+    final weekNumber = (widget.tree.totalFruit ~/ 3) + 1;
 
     return Scaffold(
       appBar: AppBar(
@@ -28,7 +70,7 @@ class ScoringScreen extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    'You & ${tree.partnerName}',
+                    'You & ${widget.tree.partnerName}',
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
@@ -57,7 +99,7 @@ class ScoringScreen extends StatelessWidget {
                           child: Column(
                             children: [
                               Text(
-                                '${tree.myPoints}',
+                                '${widget.tree.myPoints}',
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -83,7 +125,7 @@ class ScoringScreen extends StatelessWidget {
                           child: Column(
                             children: [
                               Text(
-                                '${tree.partnerPoints}',
+                                '$partnerScore',
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -91,7 +133,7 @@ class ScoringScreen extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                '${tree.partnerName}\'s Points',
+                                '${widget.tree.partnerName}\'s Points',
                                 style: const TextStyle(fontSize: 12, color: AppTheme.textLight),
                               ),
                             ],
@@ -103,7 +145,46 @@ class ScoringScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // Show full Big Branch with points visible
+                  // Score breakdown
+                  Container(
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '📊 How You Earned Points:',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          '🎯 Correct Guesses: ',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          'Points for guessing what ${widget.tree.partnerName} worked on',
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textLight),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '💪 Partner\'s Efforts: ',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          'Points from ${widget.tree.partnerName} working on your wants',
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textLight),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Show what partner worked on
                   Container(
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
@@ -113,37 +194,48 @@ class ScoringScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Your Big Branch (points visible):',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                        Text(
+                          'What ${widget.tree.partnerName} Worked On For You:',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 10),
-                        for (var item in tree.myBigBranch)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(item.description),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.primaryGreen,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${item.points} pts',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
+                        if (widget.tree.partnerLittleBranches.isEmpty)
+                          const Text(
+                            'Waiting for partner to complete their week...',
+                            style: TextStyle(color: AppTheme.textLight, fontStyle: FontStyle.italic),
+                          )
+                        else
+                          for (var item in widget.tree.partnerLittleBranches)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.check_circle, color: AppTheme.primaryGreen, size: 16),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      item.description,
+                                      style: const TextStyle(fontSize: 14),
                                     ),
                                   ),
-                                ),
-                              ],
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryGreen,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${item.points} pts',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
                       ],
                     ),
                   ),
@@ -202,12 +294,17 @@ class ScoringScreen extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () {
                     // Update Big Branch and reallocate points
-                    tree.phase = GamePhase.updating;
-                    Navigator.pushReplacement(
+                    widget.tree.phase = GamePhase.updating;
+                    // Navigate to MainAppScreen with Tree tab
+                    Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => BigBranchScreen(tree: tree),
+                        builder: (_) => MainAppScreen(
+                          initialIndex: 1,
+                          activeTree: widget.tree,
+                        ),
                       ),
+                      (route) => false,
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -219,14 +316,21 @@ class ScoringScreen extends StatelessWidget {
                 OutlinedButton(
                   onPressed: () {
                     // Start new week without changes
-                    tree.phase = GamePhase.buildingBigBranch;
-                    tree.totalFruit += 3;
+                    widget.tree.phase = GamePhase.buildingBigBranch;
+                    widget.tree.totalFruit += 3;
 
                     // Reset timer
                     context.read<GameState>().timeRemaining = const Duration(hours: 144);
                     context.read<GameState>().timerStarted = false;
 
-                    Navigator.popUntil(context, (route) => route.isFirst);
+                    // Navigate to MainAppScreen
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MainAppScreen(),
+                      ),
+                      (route) => false,
+                    );
                   },
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),

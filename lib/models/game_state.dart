@@ -59,10 +59,18 @@ class GameState extends ChangeNotifier {
       // Existing user
       user = UserModel.fromJson(users[phoneNumber]);
 
-      // Check if this user has a partner stored
-      final partnerPhone = prefs.getString('partner_$phoneNumber');
+      // Check if this user has a partner stored - check localStorage first for cross-browser sync
+      final pairingData = WebPairingService.getPairing(phoneNumber);
+      String? partnerPhone = pairingData?['partnerPhone'] as String?;
+      partnerPhone ??= prefs.getString('partner_$phoneNumber');
+
       if (partnerPhone != null && users.containsKey(partnerPhone)) {
         partner = UserModel.fromJson(users[partnerPhone]);
+      } else if (partnerPhone != null) {
+        // Partner phone exists but user not created yet - create it
+        partner = UserModel.create(partnerPhone);
+        users[partnerPhone] = partner!.toJson();
+        await prefs.setString('users', jsonEncode(users));
       }
     } else {
       // New user
@@ -157,6 +165,7 @@ class GameState extends ChangeNotifier {
 
     if (pairingData != null) {
       final partnerPhone = pairingData['phone'] as String;
+      final partnerName = pairingData['displayName'] ?? partnerPhone;
 
       // Don't pair with yourself
       if (partnerPhone == currentUser!.phoneNumber) {
@@ -174,27 +183,32 @@ class GameState extends ChangeNotifier {
       } else {
         // Create user if they don't exist
         partnerUser = UserModel.create(partnerPhone);
+        partnerUser.displayName = partnerName;
         users[partnerPhone] = partnerUser.toJson();
         await prefs.setString('users', jsonEncode(users));
       }
 
       partner = partnerUser;
 
-      // Create new tree for both users
-      activeTree = WillingTree(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        partnerId: partner!.id,
-        partnerName: partner!.displayName ?? partner!.phoneNumber,
+      // Store bidirectional pairing in localStorage for cross-browser sync
+      // This ensures both users see each other as paired
+      WebPairingService.storePairing(
+        currentUser!.phoneNumber,
+        partnerPhone,
+        partnerName: partnerName,
+      );
+      WebPairingService.storePairing(
+        partnerPhone,
+        currentUser!.phoneNumber,
+        partnerName: currentUser!.displayName ?? currentUser!.phoneNumber,
       );
 
-      // Store bidirectional pairing - both users are paired with each other
+      // Also store in SharedPreferences for local persistence
       await prefs.setString('partner_${currentUser!.phoneNumber}', partnerPhone);
       await prefs.setString('partner_$partnerPhone', currentUser!.phoneNumber);
 
-      // Also update the partner's user object to include current user as their partner
-      partnerUser.partnerId = currentUser!.id;
-      users[partnerPhone] = partnerUser.toJson();
-      await prefs.setString('users', jsonEncode(users));
+      // Create active tree (will be created with deterministic ID when starting game)
+      // Don't create tree here, just mark as paired
 
       notifyListeners();
       return true;
@@ -213,6 +227,38 @@ class GameState extends ChangeNotifier {
         print('Successfully paired via invite link!');
       }
     }
+  }
+
+  // Check if someone has paired with this user
+  Future<bool> checkForPairing() async {
+    if (currentUser == null) return false;
+
+    final pairingData = WebPairingService.getPairing(currentUser!.phoneNumber);
+    if (pairingData != null && partner == null) {
+      final partnerPhone = pairingData['partnerPhone'] as String;
+      final partnerName = pairingData['partnerName'] as String? ?? partnerPhone;
+
+      // Load partner from storage
+      final prefs = await SharedPreferences.getInstance();
+      final usersJson = prefs.getString('users') ?? '{}';
+      final users = Map<String, dynamic>.from(jsonDecode(usersJson));
+
+      UserModel partnerUser;
+      if (users.containsKey(partnerPhone)) {
+        partnerUser = UserModel.fromJson(users[partnerPhone]);
+      } else {
+        // Create user if they don't exist
+        partnerUser = UserModel.create(partnerPhone);
+        partnerUser.displayName = partnerName;
+        users[partnerPhone] = partnerUser.toJson();
+        await prefs.setString('users', jsonEncode(users));
+      }
+
+      partner = partnerUser;
+      notifyListeners();
+      return true;
+    }
+    return false;
   }
 
   void upgradeToPremium() {

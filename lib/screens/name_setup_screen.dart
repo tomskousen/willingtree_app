@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/game_state.dart';
 import '../theme/app_theme.dart';
-import 'home_screen.dart';
+import 'main_app_screen.dart';
 
 class NameSetupScreen extends StatefulWidget {
-  const NameSetupScreen({super.key});
+  final String? inviteCode;
+  const NameSetupScreen({super.key, this.inviteCode});
 
   @override
   State<NameSetupScreen> createState() => _NameSetupScreenState();
@@ -28,11 +29,17 @@ class _NameSetupScreenState extends State<NameSetupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await context.read<GameState>().updateUserName(name);
+      final gameState = context.read<GameState>();
+      await gameState.updateUserName(name);
+
+      // Auto-pair if invite code is present
+      if (widget.inviteCode != null) {
+        await gameState.pairWithCode(widget.inviteCode!);
+      }
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const MainAppScreen()),
         );
       }
     } finally {

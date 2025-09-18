@@ -102,10 +102,21 @@ class _LittleBranchScreenState extends State<LittleBranchScreen> {
     final gameState = context.read<GameState>();
 
     // Create Little Branch list (1 random + 2 selected)
+    // IMPORTANT: Preserve the original point values from the partner's Big Branch
     final littleBranch = <WantItem>[
       randomItem!,
       ...shuffledItems.where((item) => selectedItems.contains(item.id)),
     ];
+
+    // Ensure each item has the correct point value from partner's Big Branch
+    for (var item in littleBranch) {
+      // Find the matching item in partner's Big Branch to ensure correct points
+      final originalItem = widget.tree.partnerBigBranch.firstWhere(
+        (bigItem) => bigItem.id == item.id,
+        orElse: () => item,
+      );
+      item.points = originalItem.points;
+    }
 
     // Save to tree
     widget.tree.myLittleBranches = littleBranch;

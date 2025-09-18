@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models/game_state.dart';
 import 'screens/welcome_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_app_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -30,7 +30,7 @@ class WillingTreeApp extends StatelessWidget {
           if (!gameState.isAuthenticated) {
             return const WelcomeScreen();
           }
-          return const HomeScreen();
+          return const MainAppScreen();
         },
       ),
     );

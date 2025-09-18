@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/game_state.dart';
 import '../theme/app_theme.dart';
-import 'home_screen.dart';
+import 'main_app_screen.dart';
 import 'name_setup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? inviteCode;
+  const LoginScreen({super.key, this.inviteCode});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -31,18 +32,24 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final gameState = context.read<GameState>();
       await gameState.loginWithPhone(phone);
+
+      // Auto-pair if invite code is present
+      if (widget.inviteCode != null && mounted) {
+        await gameState.pairWithCode(widget.inviteCode!);
+      }
+
       if (mounted) {
         // Check if user has a name
         if (gameState.currentUser?.displayName == null) {
           // New user, need to set up name
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const NameSetupScreen()),
+            MaterialPageRoute(builder: (_) => NameSetupScreen(inviteCode: widget.inviteCode)),
             (route) => false,
           );
         } else {
-          // Existing user with name, go to home
+          // Existing user with name, go to main app
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            MaterialPageRoute(builder: (_) => const MainAppScreen()),
             (route) => false,
           );
         }

@@ -4,7 +4,7 @@ import '../models/game_state.dart';
 import '../models/user_model.dart';
 import '../theme/app_theme.dart';
 import 'pairing_screen.dart';
-import 'big_branch_screen.dart';
+import 'main_app_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,10 +46,14 @@ class _HomeScreenState extends State<HomeScreen> {
     gameState.activeTree = newTree;
     gameState.trees.add(newTree);
 
-    Navigator.push(
+    // Navigate to MainAppScreen with Tree tab selected
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => BigBranchScreen(tree: newTree),
+        builder: (_) => MainAppScreen(
+          initialIndex: 1, // Tree tab
+          activeTree: newTree,
+        ),
       ),
     );
   }

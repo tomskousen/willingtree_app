@@ -151,6 +151,23 @@ class GameSyncService {
     ];
   }
 
+  // Store user's score
+  static void storeScore(String treeId, String userId, int score) {
+    final key = 'tree_${treeId}_score_$userId';
+    html.window.localStorage[key] = score.toString();
+    print('Stored score for user $userId: $score');
+  }
+
+  // Get user's score
+  static int getScore(String treeId, String userId) {
+    final key = 'tree_${treeId}_score_$userId';
+    final scoreStr = html.window.localStorage[key];
+    if (scoreStr != null) {
+      return int.tryParse(scoreStr) ?? 0;
+    }
+    return 0;
+  }
+
   // Clear all data for a tree
   static void clearTreeData(String treeId) {
     final keys = html.window.localStorage.keys.where((k) => k.contains('tree_$treeId')).toList();

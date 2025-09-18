@@ -174,7 +174,7 @@ class _TimerWaitingScreenState extends State<TimerWaitingScreen> {
             child: Column(
               children: [
                 const Text(
-                  'Ready to see how well you know each other?',
+                  'Ready to celebrate the attention you\'ve given and received?',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppTheme.textLight,
@@ -190,7 +190,7 @@ class _TimerWaitingScreenState extends State<TimerWaitingScreen> {
                       side: const BorderSide(color: AppTheme.primaryGreen),
                     ),
                     child: const Text(
-                      'I\'m Ready! Move to Guessing',
+                      'I\'m Ready to Connect',
                       style: TextStyle(
                         fontSize: 16,
                         color: AppTheme.primaryGreen,
