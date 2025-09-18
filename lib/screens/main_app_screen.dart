@@ -44,6 +44,23 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
+  @override
+  void didUpdateWidget(MainAppScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update active tree if it changed
+    if (widget.activeTree != oldWidget.activeTree) {
+      setState(() {
+        _activeTree = widget.activeTree;
+      });
+    }
+    // Update selected index if it changed
+    if (widget.initialIndex != oldWidget.initialIndex) {
+      setState(() {
+        _selectedIndex = widget.initialIndex;
+      });
+    }
+  }
+
   void _startTreeCheck() {
     // Check periodically if partner has started a tree
     _pairingCheckTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
@@ -103,11 +120,14 @@ class _MainAppScreenState extends State<MainAppScreen> {
   Widget build(BuildContext context) {
     final gameState = context.watch<GameState>();
 
+    // Use activeTree from state or fallback to gameState's activeTree
+    final currentTree = _activeTree ?? gameState.activeTree;
+
     // Define the screens
     final List<Widget> _screens = [
       const HomeScreen(),
-      _activeTree != null
-        ? BigBranchScreen(tree: _activeTree!)
+      currentTree != null
+        ? BigBranchScreen(tree: currentTree)
         : Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -166,7 +186,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
               icon: Stack(
                 children: [
                   const Icon(Icons.park_outlined),
-                  if (_activeTree != null && gameState.timeRemaining.inHours > 0)
+                  if (currentTree != null && gameState.timeRemaining.inHours > 0)
                     Positioned(
                       right: 0,
                       top: 0,

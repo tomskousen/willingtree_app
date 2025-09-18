@@ -117,6 +117,10 @@ class _PairingScreenState extends State<PairingScreen> {
     final dateStr = DateTime.now().toIso8601String().substring(0, 10);
     final treeId = 'tree_${sortedIds[0]}_${sortedIds[1]}_$dateStr';
 
+    print('Starting new game after pairing');
+    print('Tree ID: $treeId');
+    print('Partner: ${gameState.partner!.displayName ?? gameState.partner!.phoneNumber}');
+
     final newTree = WillingTree(
       id: treeId,
       partnerId: gameState.partner!.id,
@@ -125,12 +129,12 @@ class _PairingScreenState extends State<PairingScreen> {
     gameState.activeTree = newTree;
     gameState.trees.add(newTree);
 
-    // Navigate directly to Big Branch screen
+    // Navigate directly to Big Branch screen via MainAppScreen
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (_) => MainAppScreen(
-          initialIndex: 1, // Tree tab
+        builder: (context) => MainAppScreen(
+          initialIndex: 1, // Tree tab - should show BigBranchScreen
           activeTree: newTree,
         ),
       ),
